@@ -1,0 +1,76 @@
+-- 1. Create the Database 'EventDB'
+
+CREATE DATABASE EventDB;
+USE EventDB;
+GO
+
+-- 2. Create 'Location' Table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Location' AND xtype='U')
+BEGIN
+    CREATE TABLE Location (
+        location_id INT IDENTITY(1,1) PRIMARY KEY,
+        loc_name NVARCHAR(100) NOT NULL,
+        loc_type NVARCHAR(50),          -- 'Indoor', 'Outdoor'
+        loc_capacity NVARCHAR(50),      -- Text input used in add_location.py
+        loc_address NVARCHAR(MAX),
+        loc_contact_person NVARCHAR(100),
+        loc_phone NVARCHAR(50),
+        loc_status NVARCHAR(50) DEFAULT 'Available' -- 'Available', 'Unavailable'
+    );
+END
+GO
+
+-- 3. Create 'Event' Table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Event' AND xtype='U')
+BEGIN
+    CREATE TABLE Event (
+        event_id INT IDENTITY(1,1) PRIMARY KEY,
+        location_id INT, -- Foreign Key
+        evn_name NVARCHAR(255) NOT NULL,
+        evn_start_date DATETIME NOT NULL,
+        evn_end_date DATETIME NOT NULL,
+        evn_organizer NVARCHAR(100),
+        evn_description NVARCHAR(MAX),
+        evn_type NVARCHAR(50),          -- 'Public', 'Private'
+        evn_status NVARCHAR(50) DEFAULT 'Pending', -- 'Pending', 'Approved', 'Declined'
+        evn_image VARBINARY(MAX),       -- Stores the uploaded image bytes
+        evn_admin_comment NVARCHAR(MAX), -- Stores admin notes from event_manage.py
+        
+        CONSTRAINT FK_Event_Location FOREIGN KEY (location_id) 
+        REFERENCES Location(location_id)
+        ON DELETE SET NULL 
+    );
+END
+GO
+
+-- 4. Create 'AdminUsers' Table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='AdminUsers' AND xtype='U')
+BEGIN
+    CREATE TABLE AdminUsers (
+        user_id INT IDENTITY(1,1) PRIMARY KEY,
+        username NVARCHAR(50) NOT NULL UNIQUE,
+        password NVARCHAR(255) NOT NULL
+    );
+END
+GO
+
+-- 5. Insert Seed Data
+
+-- A. Default Admin Account 
+-- Login used in main.py
+IF NOT EXISTS (SELECT * FROM AdminUsers WHERE username = 'admin')
+BEGIN
+    INSERT INTO AdminUsers (username, password) 
+    VALUES ('admin', 'password123');
+END
+
+-- B. Sample Locations
+IF NOT EXISTS (SELECT * FROM Location)
+BEGIN
+    INSERT INTO Location (loc_name, loc_type, loc_capacity, loc_address, loc_contact_person, loc_phone, loc_status)
+    VALUES 
+    ('Main Auditorium', 'Indoor', '500', 'Building A, Ground Floor', 'John Doe', '555-0101', 'Available'),
+    ('University Park', 'Outdoor', '1000', 'Central Campus Field', 'Jane Smith', '555-0102', 'Available'),
+    ('Conference Room B', 'Indoor', '50', 'Building C, 3rd Floor', 'Admin Staff', '555-0103', 'Available');
+END
+GO
